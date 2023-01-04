@@ -1,0 +1,224 @@
+---
+title: "Final Exam"
+author: "Mina Mehdinia"
+date: "2022-12-03"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(MASS)
+library(pls)
+library(olsrr)
+library(car)
+library(dplyr)
+library(faraway)
+```
+
+```{r}
+data = read.table("final.txt", header = TRUE)
+dim(data)
+```
+
+
+1) we can see that predictors are more than observations, we have to deal with high dimensionality.
+
+
+
+To reduce the number of predictor, we can start with finding predictors that have high correlation with our response
+
+```{r}
+corr_matrix <- abs(cor(data$density , data))
+cor_column <- colnames(corr_matrix)[abs(corr_matrix) >= 0.3]
+
+newdata <- data %>% select(cor_column)
+newdat_lm <- lm(density~ ., newdata)
+#ols_step_forward_p(newdat_lm,details = T)
+```
+I comment the forward function becuase when I wanted to knit it, it would take long time to run
+After forward elimination, now we are down to 50 predictors.The model selection by forward method is as follow:
+
+```{r}
+reducedat <- newdata %>% select(c(density ,X16,X349,X15,X166,X36,X140,X198,X383,X327,X70,X323,X45.1,X91,X322,X1,X406,X397,X200,X23,X428,X413,X277,X223,X181,X76,X394,X331,X42,X385,X343,X261,X188,X315,X4,X256,X440,X280,X21,X348,X253,X30,X271,X400,X354,X57,X451,X40.1,X421,X123,X157))
+
+forward_lm <- lm(density~ X16+X349+X15+X166+X36+X140+X198+X383+X327+X70+X323+X45.1+X91+X322+X1+X406+X397+X200+X23+X428+X413+X277+X223+X181+X76+X394+X331+X42+X385+X343+X261+X188+X315+X4+X256+X440+X280+X21+X348+X253+X30+X271+X400+X354+X57+X451+X40.1+X421+X123+X157,data = newdata )
+
+summary(forward_lm)
+
+
+```
+I did a linear model with all 50 predictor. we can see many of them are not significant in 5% level. I decided to remove them. 
+```{r}
+reducedat02 <- reducedat %>% select(-c(X166,X36,X140,X198,X70,X45.1,X91,X1,X428,X413,X277,X181,X76,X42,X188,X4,X21,X30,X157))
+```
+Now we are down to 31 predictor. let's do vif() to check multicollinarity. 
+```{r}
+lm2 <- lm(density ~ .,data = reducedat02)
+vif(forward_lm)
+
+plot(reducedat02[1:20])
+```
+I take a look at plot for first 20 predictor, and it's look like variable X349 has linear relation with X327,X397, X394,X331,X385,X343,X261,X315. I decide to remove those. It looks like that cause multicollinearity. let's how it looks after removing those. 
+```{r}
+reducedat03 <- reducedat02 %>% select(-c( X327,X397, X394,X331,X385,X343,X261,X315))
+plot(reducedat03)
+
+```
+now we can see more linear cor between predictor. let's remove those too.
+```{r}
+reducedat04 <- reducedat03 %>% select(-c(X348,X253,X354,X57,X421,X123,X323,X322,X406,X200,X256,X440,X23,X400))
+plot(reducedat04)
+```
+
+```{r}
+reducedat05 <- reducedat04 %>% select(-c(X280,X451,X40.1,X271,X223))
+plot(reducedat05)
+```
+Now we are ended up with 4 predictor. let's do vif() to see if there is high collinearity. 
+```{r}
+lastlm <- lm(density ~ . ,reducedat05 )
+summary(lastlm)
+vif(lastlm)
+plot(reducedat05)
+```
+
+Form the summary of linear model we can see that all is significant at 5% level, and there is no high collinearity between predictors.
+
+Our Ho: β(X16) = β(X349) = β(X15)= β(383) = 0 and our H1: at least one is not equal to zero. From the summary of our model we can see that all the predictors are statistically significant at 5% level since their p-value is less than 0.05. Therefore we reject the null hypothesis which mean at least one of them is equal to zero, and all predictors are significantly individually in the model, and there is a relationship between density and all predictors.in conclusion, we say that all the predictors should be included in our model.
+If we take a look at the coefficient estimate for X15, we can see it’s negative which means for X15, in one unit change in x15, density, will decrease by 9.702e-01 when every other predictors are fixed.
+
+If we take a look at multiple R^2, the value is  0.9903 which means that model can explain 99% of the total variability, and because it is close to 1 we say it fits good to our model.
+
+Now we are using F-test to see if predictors have a relationship to the response.
+```{r}
+lmodnull <- lm(density ~ 1, reducedat05)
+anova(lmodnull,lastlm)
+```
+
+From the result of anova we see that F-test is significant, hence the collection of these 5 predictors is significant to the response.
+
+```{r}
+confint(lastlm)
+```
+Form the CI result, we can see that none of those predicotrs at 95% level do not include zero, which mean significant of the predictor in the model.
+
+```{r}
+#removing intercept and compute RSS
+lmodinterc <- lm(density ~ . -1, reducedat05)
+summary(lmodinterc)
+```
+```{r}
+anova(lmodinterc, lastlm)
+```
+After removing intercept from our model, and computing RSS, we can see that RSS is a bit higher in model without intercept. therefore it fits the model better.
+
+
+```{r}
+abs(cor(reducedat05$density, reducedat05))
+plot(reducedat05)
+lmpred1 <- lm(density ~ X16, reducedat05)
+summary(lmpred1)
+
+lmpred2 <- lm(density ~ X349, reducedat05)
+summary(lmpred2)
+
+lmpred3 <- lm(density ~ X15, reducedat05)
+summary(lmpred3)
+
+lmpred4 <- lm(density ~ X383, reducedat05)
+summary(lmpred4)
+
+
+
+```
+
+Form the above we can see that there is a high correlation between density and X16. If I wanna suggest one predictor, I should go with X16 as it will explain the largest variation in the density as compared to the others. Also from the plot relation between predictor and response we saw that there is a strong positive linear relationship between variables X16 and density. The other way to find out is to look at R^2 because R^2 gives a good indication how well our model perform. We use one predictor at a time and record the R^2 for each model. The R^2 for x16 is 96% which is higher than others. Therefore, we can conclude that the first model is better than the other models. The third thing that prove that we should go with the first model is the residual. The first model residual is smaller that the others which means model has equally distributed around zero. X16 will explain the largest variation in the density as compared to the others
+```{r}
+
+prcomp <- prcomp(reducedat02[-1])
+summary(prcomp)
+```
+From the summary of PCA we can see that most of the standard deviation is in PC1. The Proportion of Variance of PC1 is  0.9939 which means PC1 explains 99% of variation of the original data set while the last few components account for very little of the variation.Instead of 31 variables, we could use just a single variable., and that is X16.
+```{r}
+round(prcomp$rotation[,1],3)
+```
+
+
+## Model Diagnostic
+```{r}
+#constant variance assumption
+plot(fitted(lastlm),residuals(lastlm),xlab = "Fitted", ylab = "Residuals")
+abline(h=0)
+
+plot(fitted(lastlm), sqrt(abs(residuals(lastlm))), xlab = "Fitted", ylab = expression(sqrt(hat(epsilon))))
+```
+from the first plot, there is pattern in the plot we would say that variance is not constant, but when we test for a different variance. we take sqrt(abs(residuals())) as the new response, and that confirms significanr difference in variation. it also tells us there is no strong evidence against constant variation.
+
+
+```{r}
+#normality assumption
+qqnorm(residuals(lastlm), ylab = "Residuals")
+qqline(residuals(lastlm))
+hist(residuals(lastlm))
+
+```
+Because all the point is not follow the line, we said it almost normal. The histogram shows left skewed. evidence of skewness showing a lack of normality. This might suggest a transformation of the response, but let's look at the outlier. Sometimes outlier may the reason of the not normality. 
+
+
+```{r}
+#check for large leverage points
+hatv = hatvalues(lastlm)
+halfnorm(hatv, ylab = "Leverages")
+```
+From above plot we can see that the points 173 and 432 have highest leverages which means they are far away from other points in terms of the predictors.
+
+```{r}
+#studentized residuals and pick out the smallest for finding an outlier
+stud = rstudent(lastlm)
+stud[which.max(abs(stud))]
+outlierTest(lastlm)
+```
+form studentized residuals result it shows point 21 is outlier. And form the outliertest() result it shows 20,21 are outliers. 
+
+```{r}
+#check for influential point
+cook <- cooks.distance(lastlm)
+halfnorm(cook,3)
+plot(lastlm, which =5)
+```
+points 448, 36, and 21 are  influential points from the plot
+
+```{r}
+#check for structure of the relationship between predictors and the response.
+avPlots(lastlm)
+crPlots(lastlm)
+```
+Except several slight outliers, The linearity is good over our predictors. It violate the independent assumption.
+
+```{r}
+
+box= boxcox(lastlm,plotit=T,lambda = seq(0.8,1.5, by=0.1))
+box$x[which(box$y==max(box$y))] 
+newmodel <- lm(I(((density)^(0.5151515)-1)/0.5151515)~ ., reducedat05)
+plot(newmodel)
+```
+I tried transormation of the response to see if normality will change, but it didn't.
+
+```{r}
+#dealing with outliers
+range(rstudent(lastlm))
+lmodi = lm(density ~ X16, data=reducedat05, subset=(X16> 4.379102))
+plot(lmodi, lty = 2)
+```
+
+
+```{r}
+reducedat06 <- reducedat05[-c(448,20,21,36),]
+reducelm <- lm(density ~ . , reducedat06)
+summary(lastlm)
+summary(reducelm)
+```
+we can see removing outliers and influential point will increase R^2. 
+
+Conclusion:
+When I first looked at the data set, it was really scary. I didn't know how to start to lower the dimension. But after I got a hint from Dr.Ge to compute the correlation coefficient, I could see how I organize the data.Also it was hard which method to use to model selection and shrinkage method. at the end, I found out the best predictor is X16, and I just found out the X16 is the same as Prop2 in the midterm. I believe there are some relationships in how the data was collected. I found out that all predictors is just multiply by some constant and repeated again, and that's why there were multicollinearity. and also that make sense the PC1 explain 99% of the variation, and I believe X16 is enough for our model. 

@@ -1,0 +1,179 @@
+---
+title: "Homework 2"
+author: "Mina Mehdinia"
+date: "2022-10-13"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(faraway)
+library(ggplot2)
+library(ellipsis)
+
+```
+
+
+
+### 1. For the prostate data, fit a model with lpsa as the response and the other variables as predictors:
+
+```{r}
+data(prostate, package="faraway")
+lmod <- lm(lpsa ~ lcavol + lweight + age  + lbph + svi + lcp +  gleason + pgg45 , data = prostate )
+summary(lmod)
+```
+
+
+### (a) Compute 90 and 95% CIs for the parameter associated with age. Using just these intervals, what could we have deduced about the p-value for age in the regression summary?
+
+```{r}
+confint(object = lmod, parm = c("age"), level = 0.95)
+confint(object = lmod, parm = c("age"), level = 0.90)
+
+```
+<h5 style="font-family:verdana;color:blue;">In confidence interval of 95% we cannot say age is a significant predictor becuase it is include zero, and when a confidence interval includes zero, it is not clear if a regression coeffitient is significant or not. therefore, we can say that p-value must be bigger than 0.05. But at 90% confidence interval the age is significant predictor becuase zero is not included in the confidence interval so we can say p-value is smaller than 0.05 and thatn implies significancy.  
+</h5>
+
+### (b) Compute and display a 95% joint confidence region for the parameters associated with age and lbph. Plot the origin on this display. The location of the origin on the display tells us the outcome of a certain hypothesis test. State that test and its outcome.
+
+```{r echo=FALSE}
+require(ellipse)
+plot(ellipse(lmod, c('age', 'lbph')), type = "l",
+                main = '95% Joint Confidence Region')
+points(0,0)
+points(coef(lmod)["age"], coef(lmod)["lbph"], pch = 19)
+
+abline(v = confint(lmod)['age',], lty = 3)
+abline(h = confint(lmod)['lbph',], lty = 3)
+```
+
+<h5 style="font-family:verdana;color:blue;">The joint hypothesis H0: β(age) = β(lbph) = 0 is not rejected because the origin(zero) lies inside the confidence regin ellipse.
+</h5>
+
+
+### (d) Remove all the predictors that are not significant at the 5% level. Test this model against the original model. Which model is preferred
+```{r}
+lmod2 <- lm(lpsa ~ lcavol + lweight + svi , data = prostate )
+summary(lmod2)
+```
+```{r}
+anova(lmod2, lmod)
+```
+<h5 style="font-family:verdana;color:blue;">Using anova to compare two model, we can see there is not a significant improvment from full model to reduce model because P-value is large, and that indicates that the null hypothesis cannot be rejected here. We can conclude that smaller model is better and preferable.
+</h5>
+
+### 2. Thirty samples of cheddar cheese were analyzed for their content of acetic acid, hydrogen sulfide and lactic acid. Each sample was tasted and scored by a panel of judges and the average taste score produced. Use the cheddar data to answer the following:
+
+```{r}
+data(cheddar, package="faraway")
+```
+
+### (a) Fit a regression model with taste as the response and the three chemical contents as predictors. Identify the predictors that are statistically significant at the 5% level.
+```{r}
+lmodched <- lm(taste ~ Acetic + H2S +Lactic , data = cheddar)
+summary(lmodched)
+```
+<h5 style="font-family:verdana;color:blue;">The predictors H2S and Lactic are statistically significant at the
+5% level based on their p-value.
+</h5>
+
+### (b) Acetic and H2S are measured on a log scale. Fit a linear model where all three predictors are measured on their original scale. Identify the predictors that are statistically significant at the 5% level for this model.
+```{r}
+orglmod <- lm(taste ~ exp(Acetic) + exp(H2S) +Lactic , data = cheddar)
+summary(orglmod)
+```
+<h5 style="font-family:verdana;color:blue;">In original scale model,Lactic is the only statistically significant predictor at the 5% level based on it's p-value.
+</h5>
+
+### (c) Can we use an F-test to compare these two models? Explain. Which model provides a better fit to the data? Explain your reasoning.
+
+<h5 style="font-family:verdana;color:blue;">We cannot use an F-test because we know that F-test cannot be used to test a non-linear hypothesis and cannot be used to compare two models that are not nested. In this example, first and second model are nonested. Thus F-test is not usefull here. But we can use R-squared. Model 1 multiple R-squared is 0.6518, and model 2 multiple R-squared is 0.5754. Model 1 is better because both the R-squared and Adjusted R-squared are bigger than Model 2. Therefore, the first model is better
+</h5>
+
+
+### (d) If H2S is increased 0.01 for the model used in (a), what change in the taste would be expected?
+
+<h5 style="font-family:verdana;color:blue;">From the linear regression result in (a), we know the estimate of coefficient for H2S is 3.9118. Then if H2S is increased 0.01, then we expect taste increases 0.01 x 3.9118 = 0.03911 on average, when everything else is constant.
+</h5>
+
+```{r}
+i <- summary(lmodched)$coefficients['H2S',1]
+change = 0.01 * i
+change
+```
+### 7. In the punting data, we find the average distance punted and hang times of 10 punts of an American football as related to various measures of leg strength for 13 volunteers.
+### (a) Fit a regression model with Distance as the response and the right and left leg strengths and flexibilities as predictors. Which predictors are significant at the 5% level?
+```{r}
+data(punting, package="faraway")
+puntlmod <- lm(Distance ~ RStr + LStr + RFlex + LFlex , data = punting)
+summary(puntlmod)
+```
+<h5 style="font-family:verdana;color:blue;">Non of those variables are significant at 5% level because their p-value is larger than 0.05.
+</h5>
+
+### (b) Use an F-test to determine whether collectively these four predictors have a relationship to the response.
+```{r}
+puntlmod2 <- lm(Distance ~ 1, data = punting)
+anova(puntlmod2,puntlmod)
+```
+<h5 style="font-family:verdana;color:blue;">Our null hypothesis is these four predictors are equal to zero and our alternate hypothesis is that the at least one is not equal to zero. Using Anova, we can see that p-value is less than 0.05 and we have to reject the null. Hence under 5% significance level, at least one coefficient is nonzero and these four predictors may have a relationship to the response.
+</h5>
+
+
+### (c) Relative to the model in (a), test whether the right and left leg strengths have the same effect.
+```{r}
+testlmod <- lm(Distance ~ I(RStr + LStr ) + RFlex + LFlex , data = punting)
+anova(testlmod, puntlmod)
+```
+<h5 style="font-family:verdana;color:blue;">Oue H0: β(RStr) = β(LStr) and H1: β(RStr) != β(LStr). From anova we can see that p-value is larger than 0.05, therefore we do not reject the null, and that means they may have the same effect.
+</h5>
+
+### (d) Construct a 95% confidence region for (βRStr,βLStr). Explain how the test in (c) relates to this region.
+```{r}
+confint(object = puntlmod, parm = c("RStr", "LStr"), level = 0.95)
+
+```
+<h5 style="font-family:verdana;color:blue;">95% confidence interval for both βRStr and βLStr is include zero which it proofs that they are not significant, and this is an agreement with the result that β(RStr) = β(LStr) = 0.
+</h5>
+
+### (e) Fit a model to test the hypothesis that it is total leg strength defined by adding the right and left leg strengths that is sufficient to predict the response in comparison to using individual left and right leg strengths.
+```{r}
+lm01 <- lm(Distance ~ RStr + LStr , data = punting )
+lm02 <- lm(Distance ~ I(RStr + LStr), data = punting)
+
+anova(lm02, lm01)
+anova(lm02,testlmod)
+```
+<h5 style="font-family:verdana;color:blue;">For testing if the total leg strength is sufficient to predict the response or not, first we need to test without RFlex and LFlex.From the result, we can see the p-value is larger than 0.05 which means we do not reject the null and they may have same effect.Then we test again with the RFlex and LFlex include, and again we see large p-value. From the result, we can conclude that total leg strength may alone explain the distance.
+</h5>
+
+
+### (f) Relative to the model in (a), test whether the right and left leg flexibilities have the same effect.
+```{r}
+testlmod2 <- lm(Distance ~ RStr + LStr  + I(RFlex + LFlex) , data = punting)
+anova(testlmod2, puntlmod)
+```
+
+<h5 style="font-family:verdana;color:blue;">H0:β(RFlex) = β(LFlex) and H1: β(RFlex) != β(LFlex)
+In this model p-value is bigger than 0.05, therefore we do not reject the H0, and they may have the same effect.
+</h5>
+
+
+### (g) Test for left–right symmetry by performing the tests in (c) and (f) simultaneously.
+```{r}
+testlmod3 <- lm(Distance ~ I(RStr + LStr) + I(RFlex + LFlex), data = punting )
+anova(testlmod3 , puntlmod )
+```
+<h5 style="font-family:verdana;color:blue;">H0:β(RFlex) = β(LFlex) and β(RStr) = β(LStr) vs H1: β(RFlex) != β(LFlex) and β(RStr) != β(LStr)
+From the result, p-value > 0.05 which means we do not reject H0. Therefore, Left and Right may be symmetric.
+</h5>
+
+### (h) Fit a model with Hang as the response and the same four predictors. Can we make a test to compare this model to that used in (a)? Explain.
+```{r }
+newmodl <- lm(Hang ~ RStr + LStr + RFlex + LFlex, data = punting)
+summary(newmodl)
+```
+<h5 style="font-family:verdana;color:blue;">We cannot compare this two model, because they have different response, and we cannot adequately compare models that are not nested. and here new model not nested in model (a) and vice verse. Also, the new model predictors are not significantly different from 0.
+</h5>
+

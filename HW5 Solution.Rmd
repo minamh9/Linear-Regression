@@ -1,0 +1,232 @@
+---
+title: "Homework 5"
+author: "Mina Mehdinia"
+output: rmdformats::material
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(faraway)
+```
+
+# Chapter 8 Problem 1
+
+## Researchers at National Institutes of Standards and Technology (NIST) collected pipeline data on ultrasonic measurements of the depth of defects in the Alaska pipeline in the field. The depth of the defects were then remeasured in the laboratory. These measurements were performed in six different batches. It turns out that this batch effect is not significant and so can be ignored in the analysis that follows. The laboratory measurements are more accurate than the in-field measurements, but more time consuming and expensive. We want to develop a regression equation for correcting the in-field measurements.
+
+```{r}
+data(pipeline)
+```
+
+
+## (a) Fit a regression model Lab ~ Field. Check for non-constant variance.
+
+```{r}
+pipemodel <- lm(Lab ~ Field, pipeline)
+summary(pipemodel)
+plot(fitted(pipemodel),residuals(pipemodel),xlab = "Fitted", ylab = "Residuals")
+abline(h=0)
+```
+From the plot, we can see that the residuals are not randomly distributed, therefore, there is non-constant variance in the residuals since there is a pattern in our plot.
+
+
+## (b) We wish to use weights to account for the non-constant variance. Here we split the range of Field into 12 groups of size nine (except for the last group which has only eight values). Within each group, we compute the variance of Lab as varlab and the mean of Field as meanfield. Supposing pipeline is the name of your data frame, the following R code will make the needed computations:
+
+```{r}
+i <- order(pipeline$Field)
+npipe <- pipeline[i,]
+ff <- gl(12,9)[-108]
+meanfield <- unlist(lapply(split(npipe$Field,ff),mean))
+varlab <- unlist(lapply(split(npipe$Lab,ff),var)) 
+```
+
+Suppose we guess that the the variance in the response is linked to the predictor in the following way: $var(Lab) = a0 \;Field^{a1}$ Regress log(varlab) on log(meanfield) to estimate a0 and a1. (You might choose to remove the last point.) Use this to determine appropriate weights in a WLS fit of Lab on Field. Show the regression summary.
+```{r}
+new_data <- data.frame(log_var_lab = log(varlab), log_mean_field = log(meanfield))
+new_data <- new_data[-c(12),]
+meanfield <- meanfield[-12]
+new_pipmodel <- lm(log_var_lab ~ log_mean_field, new_data, weights = 1/meanfield)
+new_pipmodel
+summary(new_pipmodel)
+plot(new_pipmodel)
+
+```
+The meanfiled has p-value less than 0.05 therefore, it is significant.Since $var(Lab) = a0 \;Field^{a1}$ we have that $log(var(Lab)) = log(a0) + a1 \;log(Field)$ and from the model we fit our estimates of a0 and a1 are $10^{-0.6569}=0.2203434$  and $1.2544$.
+
+
+## (c) An alternative to weighting is transformation. Find transformations on Lab and/or Field so that in the transformed scale the relationship is approximately linear with constant variance. You may restrict your choice of transformation to square root, log and inverse
+
+```{r}
+new_pipeline1 <- data.frame(sqrt_lab = sqrt(pipeline$Lab), sqrt_field = sqrt(pipeline$Field))
+new_pipeline_lm1 <- lm(sqrt_lab ~ sqrt_field, new_pipeline1)
+summary(new_pipeline_lm1)
+plot(new_pipeline_lm1)
+plot(residuals(new_pipeline_lm1))
+abline(h=0)
+```
+This is a better fit.The plot clearly says that there is constant variance in the residuals. The p-value is less than 0.05, therefore, the square root of field variable is significant.The last plot clearly says that there is constant variance in residuals.
+
+
+
+# Chapter 9 Problem 3 
+
+## Using the ozone data, fit a model with O3 as the response and temp, humidity and ibh as predictors. Use the Box–Cox method to determine the best transformation on the response.
+```{r}
+data(ozone)
+ozonemodel <- lm(O3 ~ temp + humidity + ibh, ozone)
+summary(ozonemodel)
+
+MASS::boxcox(ozonemodel,plotit=T)
+box <- MASS::boxcox(ozonemodel, plotit=T,lambda = seq(0.1,0.5, by=0.1)) #to specify the range of lambda
+box$x[which(box$y==max(box$y))]  # value of lambda that gives max Log likelihood
+
+new_ozonemodel <- lm((O3)^(0.2777778) ~ temp + humidity + ibh, ozone)
+summary(new_ozonemodel)
+
+```
+From the plot, the highest log likelihood value is around 0.3. The actual value is 0.2777778, and this is a power that we must use. If we look at the summary before and after transformation, we can see that transformation has increase the R^2 by approximately 3%.
+
+# Chapter 10 Problem 1
+
+## Use the prostate data with lpsa as the response and the other variables as predictors. Implement the following variable selection methods to determine the “best” model:
+
+(a) Backward elimination
+```{r}
+data(prostate)
+prostmodel <- lm(lpsa ~ . , prostate)
+summary(prostmodel)
+
+```
+now we remove the variable form the model that has highest p-value, which is gleason with 0.77503 p-value.
+```{r}
+#updated model by removing gleason variable
+prostmodel <- update(prostmodel, . ~ . -gleason)
+summary(prostmodel)
+```
+Again we remove the variable with highest p-vlaue which is lcp with p-value of 0.25127 .
+```{r}
+prostmodel <- update(prostmodel, . ~ . -lcp)
+summary(prostmodel)
+```
+The highest p-value about 0.05 in the model is 0.25331 corresponds to the variable pgg45.
+```{r}
+prostmodel <- update(prostmodel, . ~ . -pgg45)
+summary(prostmodel)
+```
+The highest p-value about 0.05 in the model is 0.1695 corresponds to the variable age.
+```{r}
+prostmodel <- update(prostmodel, . ~ . -age)
+summary(prostmodel)
+```
+The highest p-value about 0.05 in the model is 0.11213 corresponds to the variable lbph.
+```{r}
+prostmodel <- update(prostmodel, . ~ . -lbph)
+summary(prostmodel)
+```
+Now, there are no variables with p-value greater than 0.05. Therefore, we can say that the best model using backward elimination is this one. 
+
+(b) AIC
+```{r}
+require(leaps)
+b <- regsubsets(lpsa ~ . , prostate)
+rs <- summary(b)
+rs$which
+
+AIC <- 97*log(rs$rss/97) + (2:9)*2
+plot(AIC ~ I(1:8), ylab="AIC", xlab="Number of Predictors")
+```
+From the AIC plot, we see that AIC is minimized by a choice of 4 predictor namely lcavol, lweight, age, lbph, svi.
+
+we can use step function to prove our AIC.
+
+```{r}
+prostmodel02 <- lm(lpsa ~ . , prostate)
+step(prostmodel02)
+```
+Form AIC method, the best model is(lpsa ~ lcavol + lweight + age + lbph + svi). we proof.
+
+Now lets see the lm model:
+
+```{r}
+AICmodel <- lm(lpsa ~ lcavol + lweight + age + lbph + svi, prostate)
+summary(AICmodel)
+```
+The R-square value is 0.6441. Therefore, we can say that 64% of the variance in response variable lpsa explained by predictors.
+
+(c) Adjusted R^2
+```{r}
+library(leaps)
+
+b = regsubsets(lpsa ~., prostate)
+rs = summary(b)
+rs
+plot(2:9, rs$adjr2, xlab = "Number of parameters", ylab = "Adjusted R-squared")
+which.max(rs$adjr2)
+```
+From the plot, the highest Adjusted R-square is obtained at parameter 8 include intercept. the variables are:  lcavol + lweight + age + lbph + svi + lcp +pgg45
+```{r}
+Rsqrmodel <- lm(lpsa ~ lcavol + lweight + age + lbph + svi + lcp +pgg45, prostate)
+summary(Rsqrmodel)
+```
+
+
+(d) Mallows Cp
+```{r}
+plot(2:9, rs$cp, xlab = "Number of parameters", ylab = "Mallows Cp")
+abline(0,1)
+summary(b)
+```
+Form the plot we can see that the lowest Mallows CP is at paratamet 6 including intercept. the variables are: lcavol, lweight, age, lbph, svi
+```{r}
+CPmodel <- lm(lpsa ~ lcavol+ lweight+ age+ lbph+ svi, prostate)
+summary(CPmodel)
+```
+
+
+# Problem 6
+
+## Use the seatpos data with hipcenter as the response.
+
+(a) Fit a model with all eight predictors. Comment on the effect of leg length on the response.
+```{r}
+data(seatpos)
+seatposmodel <- lm(hipcenter ~ . , seatpos)
+summary(seatposmodel)
+```
+For every unit increase in leg length, -6.43905 units decrease in hipcenter, and the because the leg p-value is grater than 0.05, we say leg length is not significant in this model.
+
+b) Compute a 95% prediction interval for the mean value of the predictors.
+```{r}
+average <- apply(seatpos, 2 , mean)
+predict(seatposmodel, newdata = data.frame(t(average)),interval = "prediction")
+
+```
+The prediction interval is (-243.04 , -86.72972)
+
+(c) Use AIC to select a model. Now interpret the effect of leg length and compute the prediction interval. Compare the conclusions from the two models.
+```{r}
+b <- regsubsets(hipcenter ~ . , seatpos)
+rs <- summary(b)
+rs
+#rs$which[which.max(rs$adjr),]
+AIC <- nrow(seatpos)*log(rs$rss/nrow(seatpos)) + (2:9)*2
+rs$rss
+plot(AIC ~ I(1:8), xlab = "Number of predictor", ylab = "AIC")
+
+```
+
+The AIC value is low at 3 predictor.
+
+```{r}
+step(lm(hipcenter ~ ., data = seatpos))
+summary(step(lm(hipcenter ~ ., data = seatpos)))
+
+```
+The three predictors are: Age, HtShoes, Leg. the best model in AIC is: (hipcenter ~ Age + HtShoes + Leg). The effect of leg length in new model is: for every unit increase in leg length,-6.8297 units decreases in hipcenter.
+```{r}
+newmodel <- lm(hipcenter ~ Age + HtShoes + Leg,seatpos)
+
+predict(newmodel, interval = "confidence")
+average2 <- apply(seatpos, 2 , mean)
+predict(newmodel, newdata = data.frame(t(average2)),interval = "prediction")
+```
+The prediction interval is (-237.209 , -92.56072). We note that the prediction of two models are similar. our prediction interval has decreased in width as we expect.HtShoes now is significant at 0.01 level which is a big change.

@@ -1,0 +1,173 @@
+---
+title: "Homework 6"
+author: "Mina Mehdinia"
+output: rmdformats::material
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(faraway)
+library(pls)
+```
+
+# Chapter 11 Problem 1
+
+## Using the seatpos data, perform a PCR analysis with hipcenter as the response and HtShoes, Ht, Seated, Arm, Thigh and Leg as predictors. Select an appropriate number of components and give an interpretation to those you choose. Add Age and Weight as predictors and repeat the analysis. Use both models to predict the response for predictors taking these values:
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  - - - - - - - - 
+Age \\ Weight  \\ HtShoes \\ Ht \\ Seated \\ Arm  \\ Thigh  \\  Leg
+-----------------------------------------------------------------------------
+64.800 \\ 263.700 \\ 181.080 \\ 178.560 \\ 91.440 \\ 35.640 \\ 40.950 \\ 38.790
+-----------------------------------------------------------------------------
+
+
+```{r}
+data(seatpos)
+seat.pcr <- prcomp(seatpos[,3:8])
+dim(seat.pcr$rot)
+summary(seat.pcr)
+```
+From the summary of seat.pcr we can see that most of the standard deviation is in PC1. The Proportion of Variance of PC1 is 0.9453 which means PC1 explains 94% of variation of the original data set while the last few components account for very little of the variation.Instead of six variables, we could use just a single variable.
+```{r}
+round(seat.pcr$rotation[,1],2)
+```
+
+```{r}
+pcrmod <- pcr(hipcenter ~ HtShoes + Ht + Seated + Arm + Thigh + Leg, data = seatpos, validation = "CV", scale = F)
+pcrmod$loadings[,1]
+```
+from PC1, we can see that HtShoes and Ht have a high weight compared to other. and the variance of these two variable are relatively large compared to other. because of that we optimize the standardize the principle component:
+
+```{r}
+pcrmod <- pcr(hipcenter ~ HtShoes + Ht + Seated + Arm + Thigh + Leg, data = seatpos, validation = "CV", scale = T)
+pcrmod$loadings[,1]
+```
+
+Now we can see that the coefficients are even among other predictors.
+```{r}
+summary(pcrmod)
+```
+From the summary of scaled model, we see that about 82% variation is explained by the first PC.
+```{r}
+plot(seat.pcr$sdev[1:6], type = "l", xlab = "Principle Component", ylab = "SD to PC")
+```
+Form this plot, it is clear that variance explained by first component is the highest. 
+To find out how many PC we should use, we calculate root mean square error:
+```{r}
+pcrmse <- RMSEP(pcrmod, estimate = "CV")
+plot(pcrmse, main = "")
+```
+From the plot we can see one PC will minimize the mean square error.Therefore, the appropriate number of components is 1.
+
+Now we add Age and Weight as predictor and repaet the analysis:
+```{r}
+pcrmod02 <- pcr(hipcenter ~ Age + Weight + HtShoes + Ht + Seated + Arm + Thigh + Leg, data = seatpos, validation = "CV", scale = F)
+pcrmod02$loadings[,1]
+
+```
+We see that variance of Weight is higher than others so we should scale it:
+```{r}
+pcrmod03 <- pcr(hipcenter ~ Age + Weight + HtShoes + Ht + Seated + Arm + Thigh + Leg, data = seatpos, validation = "CV", scale = T)
+pcrmod03$loadings[,1]
+summary(pcrmod03)
+```
+we see first and second PC account for 86% of the variance. Let's do RMSE to see if using two PC will minimize the RMSE:
+```{r}
+pcrmse02 <- RMSEP(pcrmod03, estimate = "CV")
+plot(pcrmse02, main = "")
+pcrmod03$loadings[,1:2]
+```
+When we add Age and Weight the appropriate number of components is 2. The first component is kind of similar to previous one, but the second PC, we can see that there is a increase for each variable specially in Age. Age seems to dominate the second principle component.
+
+```{r}
+round (pcrmod03$loadings[,1],3)
+round(pcrmod03$loadings[,2],3)
+```
+Now let's predict the value of response using new data in a data frame.
+
+```{r}
+new_data <- data.frame(Age = 64.80, Weight = 263.70, HtShoes = 181.08, Ht = 178.56, Seated = 91.44, Arm = 35.64, Thigh = 40.95, Leg = 38.79)
+
+pred1 <- predict(pcrmod, ncomp = 1, newdata = new_data, scale = T)
+pred1
+pred2 <- predict(pcrmod03,ncomp = 2, newdata = new_data, scale = T)
+pred2
+
+```
+For the first model the predicted value is -204.5764 , and for the second model the predicted value is -199.2935.
+
+
+# Problem 6
+
+## The dataset kanga contains data on the skulls of historical kangaroo specimens.
+
+(a) Compute a PCA on the 18 skull measurements. You will need to exclude observations with missing values. What percentage of variation is explained by the first principal component?
+
+```{r}
+library(dplyr)
+```
+
+
+```{r}
+data(kanga)
+glimpse(kanga)
+data <- kanga %>% na.omit()
+glimpse(data)
+data02 <- data[,-c(1,2)]
+kangapcr <- prcomp(data02)
+summary(kangapcr)
+```
+About 90% of the variance is explained by the first principle component.
+
+(b) Provide the loadings for the first principal component. What variables are prominent?
+
+```{r}
+round(kangapcr$rotation[,1],2)
+```
+basilar.length, occipitonasal.length, palate.length, mandible.length are the most prominent in the first principle component. 
+
+(c) Repeat the PCA but with the variables all scaled to the same standard deviation. How do the percentage of variation explained and the first principal component differ from those found in the previous PCA?
+
+```{r}
+kangapcr02 <- prcomp(data02, scale = T )
+summary(kangapcr02)
+```
+When we scale all the variables to the same standard deviation, we can see that the percentage of variation explained by the first PC, decreed to 69%.
+
+(d) Give an interpretation of the second principal component.
+
+```{r}
+round(kangapcr02$rotation[,1:2],3)
+```
+All values of the variables are decreased from first to second PC except nasal.length and nasal.width. We can say the second principle component as the change in measurement relates to the nosal of kangaroo. 
+
+(e) Compute the Mahalanobis distances and plot appropriately to check for outliers.
+
+```{r}
+library(MASS)
+kangarob <- cov.rob(data02)
+mahaladist <- mahalanobis(data02, center = kangarob$center, cov = kangarob$cov)
+n <- nrow(data02)
+p <- ncol(data02)
+plot(qchisq(1:n/(n+1),p), sort(mahaladist), xlab=expression(paste(chi^2,"
+quantiles")), ylab="Sorted Mahalanobis distances")
+abline(0,1)
+text(qchisq(1:n/(n+1),p), sort(mahaladist), labels = row.names(data02))
+```
+Form the plot we can see that obseravtion 148 is far from the rest,and a potential outliers.
+
+(f) Make a scatterplot of the first and second principal components using a different plotting symbol depending on the sex of the specimen. Do you think these two components would be effective in determining the sex of a skull?
+
+```{r}
+library(ggplot2)
+PC1 <- kangapcr$x[,1]
+PC2 <- kangapcr$x[,2]
+PCdata <- data.frame(PC1, PC2, data[2])
+
+ggplot(PCdata, aes(x = PC1, y = PC2))+
+  geom_point(aes(color = sex, shape = sex))
+```
+
+It looks like the first principle component may be more helpful in determining sex than the second one.The reasoning is because vertical cross have more circles on the lower end of the scale while the triangles are on the upper end it looks like males have higher variance in skull measurements. As for the second principal
+component, the points are more mixing and overlap.
+
+

@@ -1,0 +1,226 @@
+---
+title: "Homework 1"
+author: "Mina Mehdinia"
+output: html_document
+
+---
+## 2.1
+The dataset teengamb concerns a study of teenage gambling in Britain. Fit a
+regression model with the expenditure on gambling as the response and the sex,
+status, income and verbal score as predictors. Present the output.
+```{r echo=FALSE}
+library(faraway)
+data(teengamb, package="faraway")
+head(teengamb)
+
+```
+
+```{r echo=FALSE}
+#regression linear model
+regmod <- lm(gamble ~ sex + status + income + verbal , data=teengamb)
+summary(regmod)
+```
+#### (a) What percentage of variation in the response is explained by these predictors?
+```{r echo=FALSE}
+#R^2 is percentage of variance 
+require(faraway)
+regmodsmr <- sumary(regmod) #sumary is a shorter version of summary since there is lot of regression output
+rsqr <- regmodsmr$r.squared
+cat("The percentage of variation in the response is:" , rsqr )
+```
+#### (b) Which observation has the largest (positive) residual? Give the case number.
+```{r echo=FALSE}
+cat("The largest positive residual is:", max(regmod$residuals),'\n\n')
+
+cat("The case number", which.max(regmod$residuals),"has the largest residual") 
+
+```
+
+#### (c) Compute the mean and median of the residuals.
+```{r echo=FALSE}
+cat("The mean of the residuals is:", mean(regmod$residuals), '\n\n')
+
+cat("The median of the residuals is:", median(regmod$residuals))
+```
+#### (d) Compute the correlation of the residuals with the fitted values.
+```{r echo=FALSE}
+corfit <- cor(regmod$residuals, regmod$fitted.values)
+cat("the correlation of the residulas with the fitted values is:", corfit)
+```
+
+#### (e) Compute the correlation of the residuals with the income.
+```{r echo=FALSE}
+corinc <- cor(regmod$residuals, teengamb$income)
+cat("the correlation of the residulas with the fitted values is:", corinc)
+```
+#### (f) For all other predictors held constant, what would be the difference in predicted expenditure on gambling for a male compared to a female? 
+```{r echo=FALSE}
+#In Description of teengamp package, female encoded as 1 and male encoded as 0.
+#coefficients[2,1] is the coefficient for sex
+sexcoef <- regmodsmr$coefficients[2,1]
+cat("The coefficient of the sex is:",sexcoef,". which shows females spend $22.1183301 less on gambling than males (less because the coefficient is negative) where all other predictors held constant.")
+```
+
+## 2.2
+The dataset uswages is drawn as a sample from the Current Population Survey in
+1988. Fit a model with weekly wages as the response and years of education and
+experience as predictors. 
+
+#### (a)Report and give a simple interpretation to the regression coefficient for years of education. 
+```{r echo=FALSE}
+data(uswages, package="faraway")
+head(uswages)
+```
+```{r echo=FALSE}
+lmod <- lm(wage ~ educ + exper,  data = uswages)
+summary(lmod)
+```
+<h5 style="font-family:verdana;color:red;">Interpretation:
+</h5>
+<h6 style="font-family:verdana;color:blue;">For every unit increase in years of education the weekly wage increase by 51.1753
+</h6>
+
+#### (b) Now fit the same model but with logged weekly wages. Give an interpretation to the regression coefficient for years of education.
+
+```{r echo=FALSE}
+loglmod <- lm(log(wage) ~ educ + exper,  data = uswages)
+summary(loglmod)
+```
+<h5 style="font-family:verdana;color:red;">Interpretation:
+</h5>
+<h6 style="font-family:verdana;color:blue;">For every unit increase in years of education the weekly wage increase by e^0.090506 when the experience being held.
+</h6>
+
+
+#### (c) Which interpretation is more natural?
+<h6 style="font-family:verdana;color:blue;">I would say the second interpretation is make more sense and natural since the first model have a negative value while the wage cannot be negative.
+</h6>
+
+
+## 2.4
+The dataset prostate comes from a study on 97 men with prostate cancer who were due to receive a radical prostatectomy. Fit a model with lpsa as the response and lcavol as the predictor. Record the residual standard error and the R^2. 
+
+```{r echo=FALSE}
+data(prostate, package="faraway")
+head(prostate)
+lmod01 <- lm(lpsa ~ lcavol , data = prostate )
+summarylm01 <- summary(lmod01)
+summarylm01
+resid01 <- summarylm01$sigma
+rsqr01 <- summarylm01$r.squared
+cat("The residual standard error for lpsa and lcavol is :", resid01, '\n')
+cat("The R^2 for lpsa and lcavol is:", rsqr01)
+
+```
+#### Now add lweight, svi, lbph, age, lcp, pgg45 and gleason to the model one at a time. For each model record the residual standard error and the R^2.
+
+```{r echo=FALSE}
+
+lmod02 <- lm(lpsa ~ lcavol + lweight , data = prostate )
+summarylm02 <- summary(lmod02)
+resid02 <- summarylm02$sigma
+rsqr02 <- summarylm02$r.squared
+cat("The residual standard error for lpsa, lcavol and lweight is:", resid02, '\n')
+cat("The R^2 for lpsa, lcavol and lweight is:", rsqr02)
+
+```
+```{r echo=FALSE}
+lmod03 <- lm(lpsa ~ lcavol + lweight + svi , data = prostate )
+summarylm03 <- summary(lmod03)
+resid03 <- summarylm03$sigma
+rsqr03 <- summarylm03$r.squared
+cat("The residual standard error for lpsa, lcavol, lweight and svi is:", resid03, '\n')
+cat("The R^2 for lpsa, lcavol, lweight and svi is:", rsqr03)
+```
+
+```{r echo=FALSE}
+lmod04 <- lm(lpsa ~ lcavol + lweight + svi  + lbph, data = prostate )
+summarylm04 <- summary(lmod04)
+resid04 <- summarylm04$sigma
+rsqr04 <- summarylm04$r.squared
+cat("The residual standard error for lpsa, lcavol, lweight, svi and lbph is:", resid04, '\n')
+cat("The R^2 for lpsa, lcavol, lweight,  svi and lbph is:", rsqr04)
+```
+```{r echo=FALSE}
+lmod05 <- lm(lpsa ~ lcavol + lweight + svi  + lbph + age , data = prostate )
+summarylm05 <- summary(lmod05)
+resid05 <- summarylm05$sigma
+rsqr05 <- summarylm05$r.squared
+cat("The residual standard error for lpsa, lcavol, lweight, svi, lbph and age is:", resid05, '\n')
+cat("The R^2 for lpsa, lcavol, lweight, svi, lbph and age is:", rsqr05)
+```
+```{r echo=FALSE}
+lmod06 <- lm(lpsa ~ lcavol + lweight + svi  + lbph + age + lcp , data = prostate )
+summarylm06 <- summary(lmod06)
+resid06 <- summarylm06$sigma
+rsqr06 <- summarylm06$r.squared
+cat("The residual standard error for lpsa, lcavol, lweight, svi, lbph, age and lcp is:", resid06, '\n')
+cat("The R^2 for lpsa, lcavol, lweight, svi, lbph, age and lcp is:", rsqr06)
+```
+```{r echo=FALSE}
+lmod07 <- lm(lpsa ~ lcavol + lweight + svi  + lbph + age + lcp + pgg45, data = prostate )
+summarylm07 <- summary(lmod07)
+resid07 <- summarylm07$sigma
+rsqr07 <- summarylm07$r.squared
+cat("The residual standard error for lpsa, lcavol, lweight, svi, lbph, age, lcp and pgg45 is:", resid07, '\n')
+cat("The R^2 for lpsa, lcavol, lweight, svi, lbph, age, lcp and pgg45 is:", rsqr07)
+```
+
+```{r echo=FALSE}
+lmod08 <- lm(lpsa ~ lcavol + lweight + svi  + lbph + age + lcp + pgg45 + gleason , data = prostate )
+summarylm08 <- summary(lmod08)
+resid08 <- summarylm08$sigma
+rsqr08 <- summarylm08$r.squared
+cat("The residual standard error for lpsa, lcavol, lweight, svi, lbph, age, lcp, pgg45 and gleason is:", resid08, '\n')
+cat("The R^2 for lpsa, lcavol, lweight, svi, lbph, age, lcp, pgg45 and gleason is:", rsqr08)
+```
+#### Plot the trends in these two statistics.
+```{r echo=FALSE}
+allresidual <- c(resid01,resid02, resid03, resid04, resid05, resid06, resid07, resid08)
+
+allrsquare <- c(rsqr01, rsqr02, rsqr03, rsqr04, rsqr05, rsqr06, rsqr07, rsqr08)
+
+plot(allresidual, type = "l", main = "Residual Standard Error Trend", ylab = "Standard Error")
+
+plot(allrsquare, type = "l", main = "R^2 Trend", ylab = "R-squared")
+```
+
+## 2.6
+Thirty samples of cheddar cheese were analyzed for their content of acetic acid, hydrogen sulfide and lactic acid. Each sample was tasted and scored by a panel of judges and the average taste score produced. Use the cheddar data to answer the following:
+
+```{r echo=FALSE}
+data(cheddar)
+head(cheddar)
+```
+#### (a) Fit a regression model with taste as the response and the three chemical contents as predictors. Report the values of the regression coefficients
+```{r echo=FALSE}
+chedlmod <- lm(taste ~ Acetic + H2S + Lactic, data = cheddar )
+summary(chedlmod)
+print("The values of the regression coefficients are as follow:")
+chedlmod$coefficients 
+
+```
+#### (b) Compute the correlation between the fitted values and the response. Square it. Identify where this value appears in the regression output.
+```{r echo=FALSE}
+correlation <- (cor(chedlmod$fitted.values, cheddar$taste)^2)
+cat("The square of correlation between the fitted values and the response is: ", correlation)
+```
+<h6 style="font-family:verdana;color:blue;">This value is same as Multiple R-squared.
+</h6>
+
+#### (c) Fit the same regression model but without an intercept term. What is the value of R^2 reported in the output? Compute a more reasonable measure of the goodness of fit for this example.
+```{r echo=FALSE}
+chedlmod02 <- lm(taste ~ 0 + Acetic + H2S + Lactic, data = cheddar )
+sumched<- summary(chedlmod02)
+cat("The value of R^2 is:", sumched$r.squared )
+```
+<h6 style="font-family:verdana;color:blue;">After intercept being removed the value of R^2 change to 0.8877 from 0.6518 which is bigger, therefore, we can use RSS to compute the goodness of fit.
+```{r echo=FALSE}
+#Another way to compute the RSS is: sum(resid(chedlmod02)^2). They gave same answer
+
+cat("The value of RSS for model include intercept is:", deviance(chedlmod))
+cat("The value fo RSS for model without intercept is:", deviance(chedlmod02))
+
+```
+From RSS in both model we can see that we get smaller RSS in model with intercept than the model without intercept which indicates that first model fits the data better than second one without intercept
+</h6>

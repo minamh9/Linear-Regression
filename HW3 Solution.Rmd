@@ -1,0 +1,198 @@
+---
+title: "Homework 3"
+author: "Mina Mehdinia"
+output: rmdformats::material
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(faraway)
+```
+
+# Problem 1
+
+## For the prostate data, fit a model with lpsa as the response and the other variables as predictors. (a) Suppose a new patient with the following values arrives:
+
+lcavol   lweight    age        lbph        svi        lcp gleason   pgg45
+  
+1.44692 3.62301 65.00000 0.30010 0.00000 −0.79851 7.00000 15.00000
+
+
+## Predict the lpsa for this patient along with an appropriate 95% CI.
+
+```{r}
+lmod = lm(lpsa ~ ., data=prostate)
+summary(lmod)
+newvar <- data.frame(lcavol = 1.44692, lweight = 3.62301, age = 65.00000, lbph=0.30010, svi = 0.00000, lcp = -0.79851, gleason = 7.00000, pgg45 = 15.00000)
+predict(lmod,newvar, interval = "prediction")
+```
+95% prediction confidence interval for the new patient for lpsa is (0.9646584 , 3.813447) and the predicted value is 2.389053.
+
+
+## (b) Repeat the last question for a patient with the same values except that he is age 20. Explain why the CI is wider
+
+```{r}
+newvar20 <- data.frame(lcavol = 1.44692, lweight = 3.62301, age = 20.00000, lbph=0.30010, svi = 0.00000, lcp = -0.79851, gleason = 7.00000, pgg45 = 15.00000)
+predict(lmod,newvar20, interval = "prediction")
+```
+95% prediction confidence interval for the new patient of age 20 for lpsa is (1.538744 , 5.006707) and the predicted value is 3.272726. Because the mean of age is 63 and the age 20 is very far from the mean, and that cause wider prediction confidence interval, and also the uncertainty is greater.
+
+## (c) For the model of the previous question, remove all the predictors that are not significant at the 5% level. Now recompute the predictions of the previous question. Are the CIs wider or narrower? Which predictions would you prefer? Explain
+
+```{r}
+lmodsig <- lm(lpsa ~ lcavol + lweight + svi, data=prostate)
+newvarsig <- data.frame(lcavol = 1.44692, lweight = 3.62301, svi = 0.00000)
+predict(lmodsig, newvarsig, interval = "prediction")
+```
+The confidence interval almost the same(just a little bit narrower) as the first prediction with age 65. First model shows more variability in the response variable than a new model if we look at the r-squared, and also the CI is narrower in new model, so old model is better than new model. 
+
+# Problem 2
+## Using the teengamb data, fit a model with gamble as the response and the other variables as predictors.
+
+
+## (a)Predict the amount that a male with average (given these data) status, income and verbal score would gamble along with an appropriate 95% CI
+
+```{r}
+teenlmod <- lm(gamble ~ . , data = teengamb)
+newdata <- data.frame(sex = 0 ,status = mean(teengamb$status),income = mean(teengamb$income),  verbal = mean(teengamb$verbal))
+predict(teenlmod,newdata, interval = "prediction" ,level = 0.95)
+
+```
+The amount that a male with average status, income and verbal score would gamble is 28.24252 with 95% CI.
+
+## (b) Repeat the prediction for a male with maximal values (for this data) of status, income and verbal score. Which CI is wider and why is this result expected?
+
+```{r}
+newdata2 <- data.frame(sex = 0 ,status = max(teengamb$status),income = max(teengamb$income),  verbal = max(teengamb$verbal))
+predict(teenlmod,newdata2, interval = "prediction" )
+```
+The confidence interval for maximal values is wider than the CI for average values because maximum data value is greater than the average data values, and also the uncertainty increase too.
+
+## (c) Fit a model with sqrt(gamble) as the response but with the same predictors. Now predict the response and give a 95% prediction interval for the individual in (a). Take care to give your answer in the original units of the response.
+```{r}
+sqrtmodel <- lm(sqrt(gamble) ~ . , data = teengamb)
+predict(sqrtmodel , newdata, interval = "prediction")
+```
+The sqrt(gamble) predicted is 4.049523, and the gamble amount is 16.39864 with 95% CI (-0.245035 , 8.344082)
+
+
+## (d) Repeat the prediction for the model in (c) for a female with status=20, income=1, verbal = 10. Comment on the credibility of the result.
+
+```{r}
+fdata <- data.frame(sex = 1,status=20, income=1, verbal = 10 )
+predict(sqrtmodel, fdata , interval = "prediction")
+```
+The prediction for a female is negative 2.08648, and because it's negative, the model in part (c) doesn't fit this data. 
+
+# Chapter 5 Problem 1 
+
+## (1) Use the teengamb data with gamble as the response. We focus on the effect of sex on the response and so we include this predictor in all models. There are eight possible models that include all, some, or none of the other three predictors. Fit all these models and report on the coefficient and significance of sex in each case. Comment on the stability of the effect.
+
+```{r}
+model1=lm(gamble~sex, teengamb)
+summary(model1)
+model1$coefficients["sex"]
+model2=lm(gamble~sex+status, teengamb)
+summary(model2)
+model2$coefficients["sex"]
+model3=lm(gamble~sex+income, teengamb)
+summary(model3)
+model3$coefficients["sex"]
+model4=lm(gamble~sex+status+income, teengamb)
+summary(model4)
+model4$coefficients["sex"]
+model5=lm(gamble~sex+verbal, teengamb)
+summary(model5)
+model5$coefficients["sex"]
+model6=lm(gamble~sex+verbal+status, teengamb)
+summary(model6)
+model6$coefficients["sex"]
+model7=lm(gamble~sex+verbal+income, teengamb)
+summary(model7)
+model7$coefficients["sex"]
+model8=lm(gamble~sex+verbal+status+income ,teengamb)
+summary(model8)
+model8$coefficients["sex"]
+```
+As we can see, sex in all eight models are significant because p-values in all models are < 0.05. From the coefficient in all cases, we can see that sex and income are most important variables among all and these two variable give sufficiently stable model.
+
+# Problem 3
+
+## Use the teengamb data for this question.
+## (a) Make a plot of gamble on income using a different plotting symbol depending on the sex.
+
+```{r}
+library(ggplot2)
+Sex <- factor(teengamb$sex,
+                       levels = c(0,1),
+                       labels = c("Male","Female"))
+
+ggplot(aes(x = gamble, y = income), data = teengamb) +
+  geom_point(aes(color = factor(Sex)))+
+  guides(color = guide_legend(title = "SEX"))+
+  xlab("Gamble") + ylab("Income")+
+  labs(title = "Relation Gamble on Income Depend on Sex")
+
+  
+```
+form the above graphs, we can see as income increase, gambling increase too specially in  male teenage. Similar for female too but spending on gambling for female is less than male.
+
+## (b) Fit a regression model with gamble as the response and income and sex as predictors. Display the regression fit on the plot.
+
+```{r}
+
+regmodel <- lm(gamble ~ income+ sex, teengamb)
+plot(fitted(regmodel))
+
+```
+
+# Problem 4
+
+## Thirty-nine MBA students were asked about happiness and how this related to their income and social life. The data are found in happy.
+## (a) Fit a regression model with happy as the response and the other four variables as predictors. Give an interpretation for the meaning of the love coefficient.
+
+```{r}
+happymodel <- lm(happy ~ .,happy)
+summary(happymodel)
+```
+The love coefficient estimate is 1.919279 which means in one unit change in love, happiness will increase by 1.919279. 
+
+## (b)  The love predictor takes three possible values but mostly takes the value 2 or 3. Create a new predictor called clove which takes the value zero if love is 2 or less. Use this new predictor to replace love in the regression model and interpret the meaning of the corresponding coefficient. Do the results differ much from the previous model?
+
+```{r}
+library(dplyr)
+happy <- happy %>%
+  mutate(clove = ifelse(love<=2 ,0,1))
+
+clmodel <- lm(happy ~ money + sex + work + clove ,happy)
+
+summary(clmodel)
+```
+The clove coefficient estimate is 2.296435 which means in one unit increase in clove, happiness will increase by 2.296435. From the previous model we can say that the coefficient vary for both models.
+
+## (c) Fit a model with only clove as a predictor and interpret the coefficient. How do the results compare to the previous outcome.
+
+```{r}
+clovemodel <- lm(happy ~ clove, happy)
+summary(clovemodel)
+```
+The clove coefficient estimate is 2.7222 which means in one unit increase in clove, happiness will increase by 2.7222. Comparing all the three models, this coefficient is the largest and we can say the estimate coefficient vary on all models.
+
+## (d) Make a plot of happy on work, distinguishing the value clove by using a plotting symbol. Use jittering to distinguish overplotted points.
+
+```{r}
+ggplot(data = happy, aes(x = work, y = happy)) +
+  geom_jitter(aes(color = factor(clove)), position = "jitter", shape = 15) +
+  guides( color = guide_legend(title = "CLove"))+
+  xlab("Work") + ylab("Happy")+
+  labs(title = "Happy vs Work seprated by clove")
+```
+
+
+
+
+
+
+
+
+

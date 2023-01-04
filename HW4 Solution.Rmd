@@ -1,0 +1,313 @@
+---
+title: "Homework 4"
+author: "Mina Mehdinia"
+output: rmdformats::material
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(faraway)
+library("car")
+```
+
+# Chapter 6 Problem 1
+
+## Using the sat dataset, fit a model with the total SAT score as the response and expend, salary, ratio and takers as predictors. Perform regression diagnostics on this model to answer the following questions. Display any plots that are relevant. Do not provide any plots about which you have nothing to say. Suggest possible improvements or corrections to the model where appropriate.
+```{r}
+satmodel <- lm(total ~ expend + salary + ratio + takers, data = sat)
+summary(satmodel)
+```
+
+
+## (a) Check the constant variance assumption for the errors.
+
+```{r}
+plot( fitted(satmodel),residuals(satmodel), xlab = "Fitted", ylab = "Residuals")
+abline(h  = 0)
+```
+Above plot indicates that the variance seems relatively constant along the range of the fitted values since there is no pattern in our plot.
+
+
+## (b) Check the normality assumption.
+
+```{r}
+qqnorm(residuals(satmodel), ylab = "Residuals")
+qqline(residuals(satmodel))
+```
+The plot shows that the observation approximately fit on the line, therefore we can say it satisfy the normality assumption.
+
+## (c) Check for large leverage points.
+
+```{r}
+hatv <- hatvalues(satmodel)
+states <- row.names(sat)
+halfnorm(hatv, labs = states, ylab = "Leverages")
+```
+From above plot we can see that the California and Utah have highest leverages which means they are different compared with other states predictor values. 
+
+
+## (d) Check for outliers.
+
+```{r}
+#studentized residuals and pick out the smallest
+stud <- rstudent(satmodel)
+stud[which.max(abs(stud))]
+
+#to confirm the outliers
+outlierTest(satmodel)
+
+
+```
+```{r}
+set.seed(123)
+testdata <- data.frame(x=1:10,y=1:10+rnorm(10))
+lmod <- lm(y ~ x, testdata)
+
+p1 <- c(5.5,12)
+lmod1 <- lm(y ~ x, rbind(testdata, p1))
+plot(y ~ x, rbind(testdata, p1))
+points(5.5, 12, pch=4, cex=2)
+abline(lmod)
+abline(lmod1, lty=2)
+
+p2 <- c(15,15.1)
+lmod2 <- lm(y ~ x, rbind(testdata, p2))
+plot(y ~ x, rbind(testdata, p2))
+points(15, 15.1, pch=4, cex=2)
+abline(lmod)
+abline(lmod2, lty=2)
+
+p3 <- c(15,5.1)
+lmod3 <- lm(y ~ x, rbind(testdata, p3))
+plot(y ~ x, rbind(testdata, p3))
+points(15, 5.1, pch=4, cex=2)
+abline(lmod)
+abline(lmod3, lty=2)
+
+```
+
+We can conclude that West Virginia is an outlier.
+
+## (e) Check for influential points.
+```{r}
+cook <- cooks.distance(satmodel)
+halfnorm(cook,3, labs = states, ylab = "Cook's Distance")
+
+plot(satmodel, which =5)
+
+```
+From the first plot we can see that the Utah has the largest cook's distance, and Utah, West Virginia, and New Hampshire are candidate for influential points from the second plot.
+
+## (f) Check the structure of the relationship between the predictors and the response.
+
+```{r}
+car::avPlots(satmodel)
+
+```
+In first plot, straight line in each plot is actual regression coefficient for the predictor variable. 
+From the first plot we can see that there is a weak positive linear relationship between variables expend and total, and salary and total. There is a weal negative linear relationship between ratio and total, and strong negative linear relationship between variables takers and total. 
+
+
+# Problem 2
+## Using the teengamb dataset, fit a model with gamble as the response and the other variables as predictors. Answer the questions posed in the previous question.
+```{r}
+teenmodel <- lm(gamble ~ sex + status + income + verbal, teengamb)
+summary(teenmodel)
+```
+
+## (a) Check the constant variance assumption for the errors.
+
+```{r}
+plot( fitted(teenmodel),residuals(teenmodel), xlab = "Fitted", ylab = "Residuals")
+abline(h  = 0)
+
+#to check constant variance assumption more closely, it's better to check √|ε| against yhat.
+plot(fitted(teenmodel), sqrt(abs(residuals(teenmodel))), xlab = "Fitted", ylab = expression(sqrt(hat(epsilon))))
+```
+From the above plot we can say that the assumption of constant variance is satisfied.
+
+## (b) Check the normality assumption.
+
+```{r}
+qqnorm(residuals(teenmodel), ylab = "Residuals")
+qqline(residuals(teenmodel))
+
+hist(residuals(teenmodel))
+```
+From th plot we see that point are nicely aligned along the normal line, but they tend to move away at the end which indicating of some outliers. On the whole normality assumption is satisfied.
+
+## (c) Check for large leverage points.
+
+```{r}
+hatv <- hatvalues(teenmodel)
+rownums <- row.names(teengamb)
+halfnorm(hatv ,lab = rownums, ylab = "Leverages")
+
+```
+The highest leverage values are 35th and 42nd observation values.
+ 
+## (d) Check for outliers.
+
+```{r}
+#studentized residuals and pick out the smallest
+stud <- rstudent(teenmodel)
+stud[which.max(abs(stud))]
+
+#to confirm the outliers
+outlierTest(teenmodel)
+
+```
+From above we can see that we have one outlier which is 24th observation.
+
+## (e) Check for influential points.
+```{r}
+cook <- cooks.distance(teenmodel)
+halfnorm(cook,3, ylab = "Cook's Distance")
+
+plot(teenmodel, which =5)
+
+```
+5th, 24th and 39th observation are influential points.
+
+## (f) Check the structure of the relationship between the predictors and the response.
+
+```{r}
+car::avPlots(teenmodel)
+
+```
+Straight line in each plot is actual regression coefficient for the predictor variable. 
+From the plots we can see that there is a weal negative linear relationship between gamble vs sex and gamble vs verbal. There is almost linear relationship between gamble vs status and strong positive linear relationship between variables gamble and income. 
+
+# Chapter 7 Problem 3 
+
+## Using the divusa data: (a) Fit a regression model with divorce as the response and unemployed, femlab, marriage, birth and military as predictors. Compute the condition numbers and interpret their meaning in each case. 
+```{r}
+divusamdl <- lm(divorce ~ unemployed + femlab + marriage +birth +military ,divusa )
+summary(divusamdl)
+
+#take the eigen values
+x <- model.matrix(divusamdl)[,-1]
+e <- eigen(t(x) %*% x)
+e$val #eigenvalues
+sqrt(e$val[1]/e$val)  #condition numbers
+
+```
+The largest condition numbers is 25.150782.We know that a condition number over 30 is considered large. The condition number here indicates there might be a problem, meaning the design matrix X maybe close to singular or not full rank. The condition numbers are increasing by adding new variable into the model. If the condition value is in between 10 to 30 then the predictors have multicollinearity. Therefore, two linear combinations indicating the presence of multicollinearity in the model.
+
+## (b) For the same model, compute the VIFs. Is there evidence that collinearity causes some predictors not to be significant? Explain.
+
+```{r}
+vif(divusamdl)
+```
+The female VIF is a bit larger than the others. The variances are not that much variance inflation that causes predictors to be significant.
+
+## (c) Does the removal of insignificant predictors from the model reduce the collinearity? Investigate.
+```{r}
+divusamdl.reduce <- lm(divorce ~ femlab + marriage + birth, data = divusa)
+summary(divusamdl.reduce)
+
+#take the eigen values
+x <- model.matrix(divusamdl.reduce)[,-1]
+e <- eigen(t(x) %*% x)
+e$val #eigenvalues
+sqrt(e$val[1]/e$val)  #condition numbers
+
+vif(divusamdl.reduce)
+```
+The insignificant predisctor are unemployed and military. after removing those we can see still all three predictors still significant. There is a significant decrease in intercepts.R^2 value had decreased. VIF value of female has decreased. aLL VIFs have decreased. it seems that removing insignificant predictors has reduced the collinearity.
+
+# Problem 8
+
+## Use the fat data, fitting the model described in Section 4.2. (a) Compute the condition numbers and variance inflation factors. Comment on the degree of collinearity observed in the data.
+
+```{r}
+fatmodel <- lm(brozek ~ age + weight + height + neck + chest + abdom +hip + thigh + knee + ankle + biceps + forearm + wrist, data=fat)
+summary(fatmodel)
+
+#take the eigen values
+x <- model.matrix(fatmodel)[,-1]
+e <- eigen(t(x) %*% x)
+e$val #eigenvalues
+conditionum <- sqrt(e$val[1]/e$val) 
+data.frame(condition.no = t(conditionum))
+
+#variance inflation factors
+vif(fatmodel)
+```
+we see high condition number for the model. The condition numbers are increasing by adding new variable into the model. If the condition value is in between 10 to 30 then the predictors have multicollinearity. Ten linear combinations indicating that there is a strong multicollinearity.
+vif greater than 10 indicates collinearity. Weight, abdom and hip indicate collinearity with other predictors.
+
+## (b) Cases 39 and 42 are unusual. Refit the model without these two cases and recompute the collinearity diagnostics. Comment on the differences observed from the full data fit.
+
+```{r}
+reducedata <- fat[-c(39,42),]
+redufatmdl <- lm(brozek ~ age + weight + height + neck + chest + abdom +hip + thigh + knee + ankle + biceps + forearm + wrist, reducedata)
+summary(redufatmdl)
+
+#take the eigen values
+x <- model.matrix(redufatmdl)[,-1]
+e <- eigen(t(x) %*% x)
+e$val #eigenvalues
+conditionum <- sqrt(e$val[1]/e$val) 
+data.frame(condition.no = t(conditionum))
+
+#variance inflation factors
+vif(redufatmdl)
+```
+We see fewer significant predictor in the model without case 39 and 42. Removing the outliers eliminates the influence and the significance. Neck and thigh are predictors that we'd consider for this effect, and indeed inspecting the data confirms that is the case for one (39) of the redacted data points. The other outlier (42) has a very small value for the height predictor. Although it is not significant in the model fit with the redacted data, the p-value is half that for the mode with the outliers. 
+vif greater than 10 indicates collinearity. Weight,chest,abdom and hip indicate collinearity with other predictors.
+
+## (c) Fit a model with brozek as the response and just age, weight and height as predictors. Compute the collinearity diagnostics and compare to the full data fit.
+
+```{r}
+fatmodel2 <- lm(brozek ~ age + weight + height , fat)
+summary(fatmodel2)
+
+x <- model.matrix(fatmodel2)[,-1]
+e <- eigen(t(x) %*% x)
+e$val #eigenvalues
+conditionum <- sqrt(e$val[1]/e$val) 
+data.frame(condition.no = t(conditionum))
+
+#variance inflation factors
+vif(fatmodel2)
+```
+We see the colinearity diagnostics all indicate that there is no linear association among the predictors. the condition numbers are not high and also we cans ee that vifs indicates no colinearity among the predictors.
+
+## (d) Compute a 95% prediction interval for brozek for the median values of age, weight and height
+
+```{r}
+mtrx <- model.matrix(fatmodel2)
+median <- apply(mtrx,2,median)
+pred <- predict(fatmodel2, data.frame(t(median)), interval="prediction")
+pred
+
+```
+The prediction interval for brozek is (7.659609 ,28.90304)
+
+
+## (e) Compute a 95% prediction interval for brozek for age=40, weight=200 and height=73. How does the interval compare to the previous prediction?
+
+```{r}
+new_pred <- data.frame(age=40, weight=200, height=73)
+pred02 <- predict(fatmodel2, data.frame(new_pred), interval="prediction")
+pred02
+```
+The prediction interval for brozek is (9.837784 , 31.11929), and we can see the lower and upper bound of the interval is larger than previous prediction.
+
+## (f) Compute a 95% prediction interval for brozek for age=40, weight=130 and height=73. Are the values of predictors unusual? Comment on how the interval compares to the previous two answers.
+
+```{r}
+new_pred02 <- data.frame(age=40, weight=130, height=73)
+pred03 <- predict(fatmodel2, data.frame(new_pred02), interval="prediction")
+pred03
+```
+We can see that the lower and upper bounds of the prediction interval in (f) is much smaller than those in (d) and (e),which means that it is considered unusual.
+
+
+
+
+
+
+
+
